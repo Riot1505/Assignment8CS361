@@ -32,8 +32,8 @@
   main {}
   section {}
   article {}
-    #topic1 {}
-    #topic2 {}
+    /* #topic1 {}
+    #topic2 {} */
   div {}
   aside {}
   footer {}
@@ -46,7 +46,9 @@
   a:visited {}
   
   /*  ----- Navigation ----- Override text links for navigation only.  */
-  nav {}
+  nav {
+    float: right;
+  }
   nav a {}
   nav a:hover {}
   
