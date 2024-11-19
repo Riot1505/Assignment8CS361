@@ -315,5 +315,37 @@ def dashboard():
     return render_template('dashboard.html', username=current_user.username)
 
 
+#CHANGES THAT WERE MADE
+@app.route('/changepass', methods=['GET', 'POST'])
+@login_required
+def changepass():
+    if request.method == 'POST':
+        username = request.form['Username']
+        newpass = request.form['NewPass']
+        confpass = request.form['ConfirmPass']
+        oldpass = request.form['OldPass']
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM users WHERE username = ?", (username,))
+        user_data = cursor.fetchone()
+        if newpass == confpass:
+            if user_data and check_password_hash(user_data['password'], oldpass):
+                flash("Hello world")
+                try:
+                    hashed_password = generate_password_hash(newpass)
+                    cursor.execute("UPDATE users SET password = ? WHERE username = ?", (hashed_password, username))
+                    conn.commit()
+                    flash('Changing password successful!', 'success')
+                    return redirect(url_for('dashboard'))
+                except:
+                    flash('Invalid username or password.', 'error')
+                    return redirect(url_for('changepass'))
+                finally:
+                    conn.close()
+
+    return render_template('changepass.html')
+
+
 if __name__ == '__main__':
     app.run(debug=True)
