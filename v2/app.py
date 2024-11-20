@@ -7,6 +7,8 @@ import base64
 # from app\models import db, Item, User
 # from models import Junkyard, item_test
 
+from currency_converter import CurrencyConverter
+
 
 app = Flask(__name__, template_folder='app/static/templates', static_folder='app/static')
 app.secret_key = 'capybara'  # Secret key for session management.
@@ -28,11 +30,12 @@ connect.execute(
          phone TEXT)'
          ) 
 
-# connect.execute('DROP TABLE items')
+#connect.execute('DROP TABLE items')
 connect.execute(
     'CREATE TABLE IF NOT EXISTS items ( \
         id INTEGER PRIMARY KEY AUTOINCREMENT, \
         title TEXT, \
+        currency TEXT, \
         price FLOAT, \
         description TEXT, \
         city TEXT, \
@@ -140,7 +143,7 @@ def search():
 def create_listing():
     if request.method == 'POST':
         title = request.form['title']
-        # currency = request.form['currency']
+        currency = request.form['currency']
         price = request.form['price']
         description = request.form['description']
         city = request.form['city']
@@ -156,10 +159,10 @@ def create_listing():
             cursor = items.cursor()
             cursor.execute(
                 '''
-                INSERT INTO items (title, price, description, city, state, zip_code, photo)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO items (title, currency, price, description, city, state, zip_code, photo)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 ''',
-                (title, price, description, city, state, zip_code, photo_data)
+                (title, currency, price, description, city, state, zip_code, photo_data)
             )
             items.commit()
         return redirect(url_for('browse'))
@@ -346,6 +349,31 @@ def changepass():
 
     return render_template('changepass.html')
 
+@app.route('/foreignsubmission', methods=['GET', 'POST'])
+def foreignsubmission():
+    if request.method == 'POST':
+        foreigncurrency = request.form["foreigncurrency"]
+        foreignc = CurrencyConverter()
+        connect = get_db_connection()
+        cursor = connect.cursor()
+        cursor.execute('SELECT * FROM items')
+
+        alldata = cursor.fetchall()
+        try:
+            for data in alldata:
+                foreignvalue = str(foreignc.convert(float(data['price']), data['currency'], foreigncurrency))
+                cursor.execute("UPDATE items SET price = ?, currency = ? WHERE id = ?", (str(round(float(foreignvalue), 2)), foreigncurrency, data['id']))
+                connect.commit()
+                print(data['id'], data['price'], data['currency'])
+                print('\n\n\n')
+                
+
+            return redirect(url_for('browse'))
+        except:
+            flash("Invalid currency.")
+        finally:
+            connect.close()
+    return redirect(url_for('home'))
 
 if __name__ == '__main__':
     app.run(debug=True)
